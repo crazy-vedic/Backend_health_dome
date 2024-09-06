@@ -1,5 +1,6 @@
-from initiate import connection, execute_query
+from initiate import retrieve_connection, execute_query
 
+connection = retrieve_connection()
 # Execute query to show tables
 result = execute_query(connection, 'SHOW TABLES;')
 

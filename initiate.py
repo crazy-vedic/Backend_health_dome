@@ -24,15 +24,25 @@ def execute_query(connection, query,data=None):
         return None
     cursor = connection.cursor()
     try:
-      if data:
-        cursor.executemany(query,data)
-      else:
+      if data is None:
         cursor.execute(query)
+      elif isinstance(data[0],tuple):
+        cursor.executemany(query,data)
+      #elif data is not None:
+      else:
+        cursor.execute(query, data)
       if cursor.with_rows:  # Check if the query has a result set
           result = cursor.fetchall()
           # print("Query executed successfully and result fetched.")
           return result
       connection.commit()
+      status_message = {
+            "message": "Query OK",
+            "rows_affected": cursor.rowcount,
+            "rows_matched": cursor.rowcount,  # Rows matched would be the same as affected in most cases
+            "warnings": [] if cursor.warning_count else cursor.warnings  # Fetch warnings, if any
+        }
+
       # print("Query executed successfully (no result set).")
     except Exception as e:
         print(f"While executing {query[:50]}")
@@ -40,7 +50,7 @@ def execute_query(connection, query,data=None):
         return None
     finally:
         cursor.close()  # Ensure the cursor is closed after use
-    return None
+    return status_message
   
 def insert_random_data(connection, insert_patients=False, insert_beds=False, insert_history=False, insert_medicines=False, insert_meditags=False):
   fake=Faker()
@@ -102,11 +112,14 @@ def generate_medication_name():
 
 
 # Connect to MySQL server
-connection = create_connection("127.0.0.1", "root", "password", "hospital_db")
+
+def retrieve_connection(host_name="127.0.0.1", user_name="root", user_password="password", db_name="hospital_db"):
+  connection = create_connection(host_name, user_name, user_password, db_name)
+  return connection
 
 if __name__ == '__main__':
 
-
+  connection = retrieve_connection()
   insert_random_data(connection)
   # Create Database
   create_database_query = "CREATE DATABASE IF NOT EXISTS hospital_db"
@@ -130,7 +143,7 @@ if __name__ == '__main__':
   );
   """
   create_meditag_table='''
-  create table if not exists Meditag Meditag(
+  create table if not exists Meditag(
 MediID int,
 MediTag varchar(50),
 foreign key (MediID) references Medicine(MediID),
@@ -157,3 +170,4 @@ PRIMARY KEY (MediID,MediTag));
   """
   for query in [create_bed_table, create_medicine_table, create_patient_table, create_history_table,create_meditag_table]:
       execute_query(connection, query)
+  connection.close()
