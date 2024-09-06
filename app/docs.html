@@ -1,0 +1,163 @@
+openapi: 3.0.0
+info:
+  description: This is a simple API for managing beds in a system.
+  version: "1.0.0"
+  title: Bed Management API
+  contact:
+    email: you@your-company.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+servers:
+  - url: http://localhost:5001
+    description: Local server
+tags:
+  - name: beds
+    description: Operations related to bed management
+paths:
+  /:
+    get:
+      tags:
+        - beds
+      summary: Provides API documentation
+      operationId: getDocumentation
+      description: |
+        Returns the documentation of available API endpoints.
+      responses:
+        '200':
+          description: API documentation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available_endpoints:
+                    type: object
+                    properties:
+                      /beds:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: GET
+                          description:
+                            type: string
+                            example: Dynamically filter and retrieve bed information based on query parameters.
+                          example_usage:
+                            type: array
+                            items:
+                              type: string
+                            example:
+                              - /beds?Status=Occupied
+                              - /beds?Status=Occupied&Type=Private
+                          parameters:
+                            type: object
+                            properties:
+                              Status:
+                                type: string
+                                example: Filter by bed status (e.g., 'Occupied', 'Available')
+                              Type:
+                                type: string
+                                example: Filter by bed type (e.g., 'Private', 'Shared')
+                      /set_bed:
+                        type: object
+                        properties:
+                          method:
+                            type: string
+                            example: POST
+                          description:
+                            type: string
+                            example: Update the status and/or Pid of a bed given its BedID.
+                          example_body:
+                            type: object
+                            properties:
+                              status:
+                                type: string
+                                example: Occupied
+                              Pid:
+                                type: integer
+                                example: 1
+                              bedID:
+                                type: integer
+                                example: 135
+  /beds:
+    get:
+      tags:
+        - beds
+      summary: Retrieves bed information
+      operationId: getBeds
+      description: |
+        Dynamically filter and retrieve bed information based on query parameters.
+      parameters:
+        - name: Status
+          in: query
+          description: Filter by bed status (e.g., 'Occupied', 'Available')
+          required: false
+          schema:
+            type: string
+        - name: Type
+          in: query
+          description: Filter by bed type (e.g., 'Private', 'Shared')
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bed information matching criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    BedID:
+                      type: integer
+                    Status:
+                      type: string
+                    Type:
+                      type: string
+                    other_fields:
+                      type: string
+        '400':
+          description: Invalid query parameters
+  /set_bed:
+    post:
+      tags:
+        - beds
+      summary: Updates a bed's status and/or Pid
+      operationId: setBed
+      description: |
+        Update the status and/or Pid of a bed given its BedID.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: Occupied
+                Pid:
+                  type: integer
+                  example: 1
+                bedID:
+                  type: integer
+                  example: 135
+              required:
+                - bedID
+      responses:
+        '200':
+          description: Update successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Update successful
+        '400':
+          description: Missing 'bedID' or both 'status' and 'Pid' are missing
+        '500':
+          description: Internal server error

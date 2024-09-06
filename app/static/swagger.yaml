@@ -1,0 +1,244 @@
+openapi: 3.0.0
+info:
+  description: This is a simple API for managing beds and patients in a system.
+  version: "1.0.0"
+  title: Bed and Patient Management API
+  contact:
+    email: vedic20052005@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+servers:
+  - url: http://vedicvarma.com:5000
+    description: Permanent server
+  - url: http://43.204.147.14:5000
+    description: Temporarily hosted server
+  - url: http://localhost:5000
+    description: Local server
+tags:
+  - name: beds
+    description: Operations related to bed management
+  - name: patients
+    description: Operations related to patient management
+  - name: data
+    description: Operations for inserting random data
+paths:
+  /:
+    get:
+      summary: Home route
+      description: Home route that provides Swagger documentation.
+      operationId: home
+      responses:
+        '200':
+          description: Successfully serves the Swagger documentation
+          content:
+            text/html:
+              schema:
+                type: string
+  /insert-random-data:
+    get:
+      tags:
+        - data
+      summary: Insert random data into the database
+      description: Insert random data for patients, beds, history, medicines, and meditag into the database.
+      operationId: insertRandomData
+      responses:
+        '200':
+          description: Random data inserted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: Random data inserted successfully!
+                  response:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        message:
+                          type: string
+                        query:
+                          type: string
+                        rows_matched:
+                          type: integer
+                        warnings:
+                          type: array
+                          items:
+                            type: object
+                        error:
+                          type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: An error occurred during the data insertion.
+  /patients:
+    get:
+      tags:
+        - patients
+      summary: Retrieve patient information
+      description: Retrieve patient information based on query parameters.
+      operationId: getPatients
+      parameters:
+        - name: filters
+          in: query
+          description: Comma-separated list of filters to apply to the patient data (e.g., "Age>30,Sex=F").
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient information matching criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    PatientID:
+                      type: integer
+                    Name:
+                      type: string
+                    Phone:
+                      type: string
+                    Age:
+                      type: integer
+                    Sex:
+                      type: string
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid query parameters.
+  /beds:
+    get:
+      tags:
+        - beds
+      summary: Retrieve bed information
+      description: Retrieve bed information based on query parameters.
+      operationId: getBeds
+      parameters:
+        - name: filters
+          in: query
+          description: Comma-separated list of filters to apply to the bed data (e.g., "Status=Occupied,Type=Private").
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Bed information matching criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    BedID:
+                      type: integer
+                    Type:
+                      type: string
+                    Location:
+                      type: string
+                    Status:
+                      type: string
+                    Pid:
+                      type: integer
+                      nullable: true
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid query parameters.
+  /set_bed:
+    post:
+      tags:
+        - beds
+      summary: Update a bed's status and/or Pid
+      description: Update the status and/or Pid of a bed given its BedID.
+      operationId: setBed
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  example: Occupied
+                  description: The new status of the bed.
+                Pid:
+                  type: integer
+                  example: 1
+                  description: The new patient ID for the bed.
+                bedID:
+                  type: integer
+                  example: 135
+                  description: The unique identifier of the bed to be updated.
+              required:
+                - bedID
+      responses:
+        '200':
+          description: Update successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Update successful
+        '400':
+          description: Missing 'bedID' or both 'status' and 'Pid' are missing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Missing 'bedID' or both 'status' and 'Pid' are missing in the request.
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: An error occurred during the update.
+components:
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    Success:
+      type: object
+      properties:
+        message:
+          type: string
+        data:
+          type: object
