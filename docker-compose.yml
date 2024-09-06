@@ -8,18 +8,38 @@ services:
       - mysql_data:/var/lib/mysql
     ports:
       - "127.0.0.1:3307:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping","-u","root","-ppassword"]
+      interval: 10s
+      retries: 5
+      start_period: 10s
+      timeout: 5s
+
 
   flask-app:
     build: ./app
     ports:
       - "5000:5000"
+    volumes:
+      - ./app:/app
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     environment:
       - MYSQL_HOST=mysql
       - MYSQL_USER=root
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=hospital_db
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app
+          ignore:
+            - __pycache__/
+        - action: rebuild
+          path: requirements.txt
+
 
 volumes:
   mysql_data:

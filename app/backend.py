@@ -1,8 +1,7 @@
-from flask import Flask, jsonify, request,send_from_directory
+from flask import Flask, jsonify, request, send_from_directory
 from initiate import retrieve_connection, execute_query, insert_random_data
 from flask_swagger_ui import get_swaggerui_blueprint
-
-
+import logging
 
 app = Flask(__name__)
 
@@ -17,31 +16,79 @@ swaggerui_blueprint = get_swaggerui_blueprint(
 app.register_blueprint(swaggerui_blueprint, url_prefix='/apidocs')
 
 
+def parse_filters(filters):
+    """
+    Parse filter strings and return conditions and values for SQL queries.
+    """
+    base_query = ''
+    conditions = []
+    values = []
+
+    for filter_str in filters:
+        if '=' in filter_str:
+            column, value = filter_str.split('=', 1)
+            operator = '='
+        elif '>' in filter_str:
+            column, value = filter_str.split('>', 1)
+            operator = '>'
+        elif '<' in filter_str:
+            column, value = filter_str.split('<', 1)
+            operator = '<'
+        else:
+            continue  # skip invalid filters
+        
+        column = column.strip()
+        value = value.strip()
+        conditions.append(f"{column} {operator} %s")
+        values.append(value)
+    
+    return conditions, values
+
 
 @app.route('/', methods=['GET'])
 def home():
     """
     Home route that provides Swagger documentation.
-    ---
-    get:
-      summary: Provides Swagger documentation
-      description: |
-        Returns the Swagger UI for the API documentation.
-      responses:
-        '200':
-          description: Swagger UI
     """
     return send_from_directory('static', 'index.html')
-    
+
+
 @app.route('/insert-random-data', methods=['GET'])
 def insert_data():
-    # Insert random data
-    with retrieve_connection() as connection:
-        if connection is None:
-            return jsonify({"error": "Unable to establish connection to the database."}), 500
-    insert_random_data(connection, insert_patients=True, insert_beds=True, insert_history=True, insert_medicines=True, insert_meditags=True)
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            response = insert_random_data(connection, insert_patients=True, insert_beds=True, insert_history=True, insert_medicines=True, insert_meditags=True)
+        return jsonify({"status": "Random data inserted successfully!", "response": response})
+    except Exception as e:
+        logging.error(f"Failed to insert random data: {e}")
+        return jsonify({"error": str(e)}), 500
 
-    return jsonify({"status": "Random data inserted successfully!"})
+
+@app.route('/patients', methods=['GET'])
+def get_patients():
+    """
+    Retrieve patient information based on query parameters.
+    """
+    filters = request.args.get('filters', default='').split(',')
+    base_query = 'SELECT * FROM Patient'
+    conditions, values = parse_filters(filters)
+    
+    if conditions:
+        base_query += ' WHERE ' + ' AND '.join(conditions)
+    
+    logging.info(f"Executing query: {base_query}")
+    
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            result = execute_query(connection, base_query, values if values else None)
+            return jsonify(result)
+    except Exception as e:
+        logging.error(f"Query failed: {e}")
+        return jsonify({"message": "Query execution failed.", "error": str(e)}), 500
 
 
 @app.route('/beds', methods=['GET'])
@@ -49,36 +96,36 @@ def get_beds():
     """
     Retrieve bed information based on query parameters.
     """
-    filters = request.args.to_dict()  # Converts all query parameters to a dictionary
+    filters = request.args.get('filters', default='').split(',')
     base_query = 'SELECT * FROM Bed'
-    conditions = []
-    values = []
-    for column, value in filters.items():
-        conditions.append(f"{column} = %s")
-        values.append(value)
+    conditions, values = parse_filters(filters)
 
-    # Add conditions to the base query if there are any filters
     if conditions:
         base_query += ' WHERE ' + ' AND '.join(conditions)
+    
+    logging.info(f"Executing query: {base_query}")
+    
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            result = execute_query(connection, base_query, values if values else None)
+            return jsonify(result)
+    except Exception as e:
+        logging.error(f"Query failed: {e}")
+        return jsonify({"message": "Query execution failed.", "error": str(e)}), 500
 
-    with retrieve_connection() as connection:
-        if connection is None:
-            return jsonify({"error": "Unable to establish connection to the database."}), 500
-        result = execute_query(connection, base_query, values if len(values) > 0 else None)
-    return jsonify(result)
 
 @app.route('/set_bed', methods=['POST'])
 def set_bed():
     """
     Update the status and/or Pid of a bed given its BedID.
     """
-    data = request.json  # Parse the incoming JSON data
+    data = request.json
 
-    # Validate that 'bedID' is provided and at least one of 'status' or 'Pid' is present
     if not data or not data.get('bedID') or ('status' not in data and 'Pid' not in data):
         return jsonify({"error": "Missing 'bedID' or both 'status' and 'Pid' are missing in the request."}), 400
 
-    # Dynamically build the SQL query based on provided data
     update_fields = []
     values = []
 
@@ -89,13 +136,12 @@ def set_bed():
     if 'Pid' in data:
         update_fields.append("Pid = %s")
         values.append(data['Pid'])
-    # Ensure we have fields to update
+
     if not update_fields:
         return jsonify({"error": "No valid fields to update."}), 400
 
-    values.append(data['bedID'])  # Add 'bedID' as the last parameter
+    values.append(data['bedID'])
 
-    # Construct the dynamic SQL query
     query = f"UPDATE Bed SET {', '.join(update_fields)} WHERE BedID = %s;"
 
     try:
@@ -105,8 +151,9 @@ def set_bed():
             result = execute_query(connection, query, values)
         return jsonify(result) if result else jsonify({"message": "Update successful"}), 200
     except Exception as e:
-        return jsonify({"error": str(e)}), 500  # Return HTTP 500 for internal server error
+        logging.error(f"Update failed: {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
-    app.run('0.0.0.0',debug=True)
+    app.run('0.0.0.0', debug=True)
