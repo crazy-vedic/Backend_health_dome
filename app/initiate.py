@@ -1,6 +1,7 @@
 import mysql.connector
 from faker import Faker
 from random import choice, randint
+from os import getenv
 
 # Establish connection to the MySQL server
 def create_connection(host_name, user_name, user_password, db_name=None):
@@ -10,12 +11,16 @@ def create_connection(host_name, user_name, user_password, db_name=None):
             host=host_name,
             user=user_name,
             password=user_password,
-            database=db_name  # Specify the database during connection
+            database=db_name
         )
-        print("Connection to MySQL DB successful")
+        if connection.is_connected():
+          print("Connection to MySQL DB successful")
+          return connection
+        else:
+          raise mysql.connector.Error("Connection to MySQL DB failed")
     except mysql.connector.Error as e:
         print(f"The Exception '{e}' occurred")
-    return connection
+        raise
 
 # Execute a query
 def execute_query(connection, query,data=None):
@@ -111,11 +116,14 @@ def generate_medication_name():
     return f"{choice(base_names)}{choice(modifiers)}{choice(suffixes)}"
 
 
-# Connect to MySQL server
-
-def retrieve_connection(host_name="127.0.0.1", user_name="root", user_password="password", db_name="hospital_db"):
-  connection = create_connection(host_name, user_name, user_password, db_name)
-  return connection
+def retrieve_connection(
+    host_name=getenv('MYSQL_HOST'),  # Use 'mysql' as hostname within Docker network
+    user_name=getenv('MYSQL_USER'),
+    user_password=getenv('MYSQL_PASSWORD'),
+    db_name=getenv('MYSQL_DATABASE')
+):
+    connection = create_connection(host_name, user_name, user_password, db_name)
+    return connection
 
 if __name__ == '__main__':
 

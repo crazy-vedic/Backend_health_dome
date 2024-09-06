@@ -1,18 +1,54 @@
-from flask import Flask, jsonify, request
-from initiate import retrieve_connection, execute_query
+from flask import Flask, jsonify, request,send_from_directory
+from initiate import retrieve_connection, execute_query, insert_random_data
+from flask_swagger_ui import get_swaggerui_blueprint
+
+
 
 app = Flask(__name__)
+
+swaggerui_blueprint = get_swaggerui_blueprint(
+    '/apidocs',
+    '/static/swagger.yaml',
+    config={  # Swagger UI configuration options
+        'app_name': "Simple Bed Manager API"
+    }
+)
+
+app.register_blueprint(swaggerui_blueprint, url_prefix='/apidocs')
+
+
+
+@app.route('/', methods=['GET'])
+def home():
+    """
+    Home route that provides Swagger documentation.
+    ---
+    get:
+      summary: Provides Swagger documentation
+      description: |
+        Returns the Swagger UI for the API documentation.
+      responses:
+        '200':
+          description: Swagger UI
+    """
+    return send_from_directory('static', 'index.html')
+    
+@app.route('/insert-random-data', methods=['GET'])
+def insert_data():
+    # Insert random data
+    with retrieve_connection() as connection:
+        if connection is None:
+            return jsonify({"error": "Unable to establish connection to the database."}), 500
+    insert_random_data(connection, insert_patients=True, insert_beds=True, insert_history=True, insert_medicines=True, insert_meditags=True)
+
+    return jsonify({"status": "Random data inserted successfully!"})
 
 
 @app.route('/beds', methods=['GET'])
 def get_beds():
-    '''
-    Dynamic filtering to access the beds information:
-    GET /beds?Status=Occupied
-    SELECT * FROM Bed WHERE Status = 'Occupied';
-    GEt /beds?Status=Occupied&Type=Private
-    SELECT * FROM Bed WHERE Status = 'Occupied' AND Type = 'Private' ;
-    '''
+    """
+    Retrieve bed information based on query parameters.
+    """
     filters = request.args.to_dict()  # Converts all query parameters to a dictionary
     base_query = 'SELECT * FROM Bed'
     conditions = []
@@ -26,19 +62,15 @@ def get_beds():
         base_query += ' WHERE ' + ' AND '.join(conditions)
 
     with retrieve_connection() as connection:
+        if connection is None:
+            return jsonify({"error": "Unable to establish connection to the database."}), 500
         result = execute_query(connection, base_query, values if len(values) > 0 else None)
     return jsonify(result)
 
 @app.route('/set_bed', methods=['POST'])
 def set_bed():
     """
-    Data must have the following format:
-    {
-        "status": "Occupied",  # Optional
-        "Pid": 1               # Optional
-        "bedID": 135,          # Required
-    }
-    Set the status and Pid of a bed, given its BedID
+    Update the status and/or Pid of a bed given its BedID.
     """
     data = request.json  # Parse the incoming JSON data
 
@@ -68,6 +100,8 @@ def set_bed():
 
     try:
         with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
             result = execute_query(connection, query, values)
         return jsonify(result) if result else jsonify({"message": "Update successful"}), 200
     except Exception as e:
@@ -75,4 +109,4 @@ def set_bed():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run('0.0.0.0',debug=True)
