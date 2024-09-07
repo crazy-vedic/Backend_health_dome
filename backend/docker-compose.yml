@@ -15,7 +15,7 @@ services:
       start_period: 10s
       timeout: 5s
 
-
+#shiten?
   flask-app:
     build: ./app
     ports:
