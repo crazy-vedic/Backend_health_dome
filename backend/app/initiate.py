@@ -1,6 +1,6 @@
 import mysql.connector
 from faker import Faker
-from random import choice, randint
+from random import choice, randint,random
 from os import getenv
 import logging
 
@@ -116,10 +116,10 @@ def insert_random_data(connection, insert_patients=False, insert_beds=False, ins
     # Insert data into the 'Medicine' table
     if insert_medicines:
         insert_medicine_query = '''
-        INSERT INTO Medicine (MediName, Qty,Expiry)
-        VALUES (%s, %s, %s)
+        INSERT INTO Medicine (MediName, Qty,Expiry,Price)
+        VALUES (%s, %s, %s, %s)
         '''
-        medicine_data = [(generate_medication_name(), randint(1, 100), fake.date_between(start_date='-1y',end_date='today')) for _ in range(10)]
+        medicine_data = [(generate_medication_name(), randint(1, 100), fake.date_between(start_date='-1y',end_date='today'),max(10,random()*1000)) for _ in range(10)]
         for data in medicine_data:
             try:
                 result = execute_query(connection, insert_medicine_query, data)
@@ -185,6 +185,7 @@ if __name__ == '__main__':
     CREATE TABLE IF NOT EXISTS Medicine (
         MediID INT AUTO_INCREMENT PRIMARY KEY,
         MediName VARCHAR(100),
+        Price INT,
         Qty INT,
         Expiry DATE
     );
