@@ -121,8 +121,6 @@ def get_beds():
     except Exception as e:
         logging.error(f"Query failed: {e}")
         return jsonify({"message": "Query execution failed.", "error": str(e)}), 500
-
-
 @app.route('/set_bed', methods=['POST'])
 def set_bed():
     """
