@@ -1,8 +1,8 @@
 openapi: 3.0.0
 info:
-  description: This is a simple API for managing beds and patients in a system.
+  description: This is a simple API for managing beds, patients, and medicines in a system.
   version: "1.0.0"
-  title: Bed and Patient Management API
+  title: Bed, Patient, and Medicine Management API
   contact:
     email: vedic20052005@gmail.com
   license:
@@ -20,10 +20,12 @@ tags:
     description: Operations related to bed management
   - name: patients
     description: Operations related to patient management
+  - name: medicines
+    description: Operations related to medicine management
   - name: data
     description: Operations for inserting random data
 paths:
-  /:
+  /apidocs:
     get:
       summary: Home route
       description: Home route that provides Swagger documentation.
@@ -218,6 +220,109 @@ paths:
                   error:
                     type: string
                     example: Missing 'bedID' or both 'status' and 'Pid' are missing in the request.
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: An error occurred during the update.
+  /medicines:
+    get:
+      tags:
+        - medicines
+      summary: Retrieve medicine information
+      description: Retrieve medicine information based on query parameters.
+      operationId: getMedicines
+      parameters:
+        - name: filters
+          in: query
+          description: Comma-separated list of filters to apply to the medicine data (e.g., "MediName=NovaUltra-ol,Qty>50").
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Medicine information matching criteria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    MediID:
+                      type: integer
+                    MediName:
+                      type: string
+                    Qty:
+                      type: integer
+                    Expiry:
+                      type: string
+                      format: date
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Invalid query parameters.
+  /set_medicine:
+    post:
+      tags:
+        - medicines
+      summary: Update a medicine's quantity and/or expiry date
+      description: Update the quantity and/or expiry date of a medicine given its MediID.
+      operationId: setMedicine
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                Qty:
+                  type: integer
+                  example: 50
+                  description: The new quantity of the medicine.
+                Expiry:
+                  type: string
+                  format: date
+                  example: 2024-12-31
+                  description: The new expiry date of the medicine.
+                MediID:
+                  type: integer
+                  example: 1
+                  description: The unique identifier of the medicine to be updated.
+              required:
+                - MediID
+      responses:
+        '200':
+          description: Update successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Update successful
+        '400':
+          description: Missing 'MediID' or both 'Qty' and 'Expiry' are missing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Missing 'MediID' or both 'Qty' and 'Expiry' are missing in the request.
         '500':
           description: Internal server error
           content:

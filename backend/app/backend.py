@@ -161,6 +161,68 @@ def set_bed():
         logging.error(f"Update failed: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route('/medicines', methods=['GET'])
+def get_medicines():
+    """
+    Retrieve medicine information based on query parameters.
+    """
+    filters = request.args.get('filters', default='').split(',')
+    base_query = 'SELECT * FROM Medicine'
+    conditions, values = parse_filters(filters)
+
+    if conditions:
+        base_query += ' WHERE ' + ' AND '.join(conditions)
+    
+    logging.info(f"Executing query: {base_query}")
+    
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            result = execute_query(connection, base_query, values if values else None)
+            return jsonify(result)
+    except Exception as e:
+        logging.error(f"Query failed: {e}")
+        return jsonify({"message": "Query execution failed.", "error": str(e)}), 500
+
+@app.route('/set_medicine', methods=['POST'])
+def set_medicine():
+    """
+    Update the quantity and/or expiry date of a medicine given its MediID.
+    """
+    data = request.json
+
+    if not data or not data.get('MediID') or ('Qty' not in data and 'Expiry' not in data):
+        return jsonify({"error": "Missing 'MediID' or both 'Qty' and 'Expiry' are missing in the request."}), 400
+
+    update_fields = []
+    values = []
+
+    if 'Qty' in data:
+        update_fields.append("Qty = %s")
+        values.append(data['Qty'])
+    
+    if 'Expiry' in data:
+        update_fields.append("Expiry = %s")
+        values.append(data['Expiry'])
+
+    if not update_fields:
+        return jsonify({"error": "No valid fields to update."}), 400
+
+    values.append(data['MediID'])
+
+    query = f"UPDATE Medicine SET {', '.join(update_fields)} WHERE MediID = %s;"
+
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            result = execute_query(connection, query, values)
+        return jsonify(result) if result else jsonify({"message": "Update successful"}), 200
+    except Exception as e:
+        logging.error(f"Update failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == '__main__':
     app.run('0.0.0.0', debug=True)
