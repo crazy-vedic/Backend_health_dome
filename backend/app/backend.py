@@ -6,7 +6,7 @@ from flask_cors import CORS
 from os import getenv
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/*": {"origins": "*"}})  # Allow all origins
 
 swaggerui_blueprint = get_swaggerui_blueprint(
     '/apidocs',
