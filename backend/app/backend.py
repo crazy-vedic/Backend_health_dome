@@ -47,6 +47,36 @@ def parse_filters(filters):
     
     return conditions, values
 
+@app.route('/add_patient', methods=['POST'])
+def add_patient():
+    """
+    Add a new patient to the database.
+    """
+    data = request.json
+
+    # Check if all required fields are present
+    required_fields = ['Name', 'Phone', 'Age', 'Sex']
+    missing_fields = [field for field in required_fields if field not in data]
+
+    if missing_fields:
+        return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
+
+    # Prepare data for insertion
+    values = (data['Name'], data['Phone'], data['Age'], data['Sex'])
+
+    query = "INSERT INTO Patient (Name, Phone, Age, Sex) VALUES (%s, %s, %s, %s);"
+
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            result = execute_query(connection, query, values)
+        return jsonify({"message": "Patient added successfully"}), 201
+    except Exception as e:
+        logging.error(f"Failed to add patient: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/set_patient', methods=['POST'])
 def set_patient():
     """
