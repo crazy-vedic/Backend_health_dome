@@ -47,6 +47,52 @@ def parse_filters(filters):
     
     return conditions, values
 
+@app.route('/set_patient', methods=['POST'])
+def set_patient():
+    """
+    Update the details of a patient given their PatientID.
+    """
+    data = request.json
+
+    if not data or not data.get('PatientID') or ('Name' not in data and 'Phone' not in data and 'Age' not in data and 'Sex' not in data):
+        return jsonify({"error": "Missing 'PatientID' or no valid fields to update in the request."}), 400
+
+    update_fields = []
+    values = []
+
+    if 'Name' in data:
+        update_fields.append("Name = %s")
+        values.append(data['Name'])
+    
+    if 'Phone' in data:
+        update_fields.append("Phone = %s")
+        values.append(data['Phone'])
+    
+    if 'Age' in data:
+        update_fields.append("Age = %s")
+        values.append(data['Age'])
+    
+    if 'Sex' in data:
+        update_fields.append("Sex = %s")
+        values.append(data['Sex'])
+
+    if not update_fields:
+        return jsonify({"error": "No valid fields to update."}), 400
+
+    values.append(data['PatientID'])
+
+    query = f"UPDATE Patient SET {', '.join(update_fields)} WHERE PatientID = %s;"
+
+    try:
+        with retrieve_connection() as connection:
+            if connection is None:
+                return jsonify({"error": "Unable to establish connection to the database."}), 500
+            result = execute_query(connection, query, values)
+        return jsonify(result) if result else jsonify({"message": "Update successful"}), 200
+    except Exception as e:
+        logging.error(f"Update failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
 
 @app.route('/details', methods=['GET'])
 def get_details():

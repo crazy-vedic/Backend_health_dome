@@ -333,6 +333,73 @@ paths:
                   error:
                     type: string
                     example: An error occurred during the update.
+  /set_patient:
+    post:
+      tags:
+        - patients
+      summary: Update patient information
+      description: Update the information of a patient given their PatientID.
+      operationId: setPatient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                PatientID:
+                  type: integer
+                  example: 1
+                  description: The unique identifier of the patient to be updated.
+                Name:
+                  type: string
+                  example: John Doe
+                  description: The new name of the patient.
+                Phone:
+                  type: string
+                  example: '1234567890'
+                  description: The new phone number of the patient.
+                Age:
+                  type: integer
+                  example: 35
+                  description: The new age of the patient.
+                Sex:
+                  type: string
+                  example: M
+                  description: The new sex of the patient.
+              required:
+                - PatientID
+      responses:
+        '200':
+          description: Update successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Update successful
+        '400':
+          description: Missing 'PatientID' or no data provided for update
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Missing 'PatientID' or no data provided for update.
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: An error occurred during the update.
 components:
   schemas:
     Error:
