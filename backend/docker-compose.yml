@@ -12,10 +12,9 @@ services:
       test: ["CMD", "mysqladmin", "ping","-u","root","-ppassword"]
       interval: 10s
       retries: 5
-      start_period: 10s
+      start_period: 20s
       timeout: 5s
 
-#shiten?
   flask-app:
     build: ./app
     ports:
@@ -30,6 +29,7 @@ services:
       - MYSQL_USER=root
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=hospital_db
+      - HOSPITAL_NAME=Vasant Kunj Hospital
     develop:
       watch:
         - action: sync

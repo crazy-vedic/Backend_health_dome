@@ -88,7 +88,7 @@ def insert_random_data(connection, insert_patients=False, insert_beds=False, ins
         VALUES (%s, %s, %s, %s)
         '''
         status = [choice(['Available', 'Occupied', 'Reserved']) for _ in range(11)]
-        bed_data = [(choice(['General', 'ICU', 'Private']), f"{choice(['A', 'B', 'C'])}/{randint(0, 3)}{randint(10, 99)}", status[i], randint(1, 9) if status[i] == 'Occupied' else None) for i in range(11)]
+        bed_data = [(choice(['General', 'ICU', 'Private']), f"{choice(['A', 'B', 'C'])}/{randint(0, 3)}{randint(10, 99)}", status[i], randint(1, 9) if status[i] == 'Occupied' or status[i]=='Reserved' else None) for i in range(11)]
         logging.debug(f"Bed data: {bed_data}")
         for data in bed_data:
             try:
@@ -116,10 +116,10 @@ def insert_random_data(connection, insert_patients=False, insert_beds=False, ins
     # Insert data into the 'Medicine' table
     if insert_medicines:
         insert_medicine_query = '''
-        INSERT INTO Medicine (MediName, Qty)
-        VALUES (%s, %s)
+        INSERT INTO Medicine (MediName, Qty,Expiry)
+        VALUES (%s, %s, %s)
         '''
-        medicine_data = [(generate_medication_name(), randint(1, 100)) for _ in range(10)]
+        medicine_data = [(generate_medication_name(), randint(1, 100), fake.date_between(start_date='-1y',end_date='today')) for _ in range(10)]
         for data in medicine_data:
             try:
                 result = execute_query(connection, insert_medicine_query, data)
@@ -185,7 +185,8 @@ if __name__ == '__main__':
     CREATE TABLE IF NOT EXISTS Medicine (
         MediID INT AUTO_INCREMENT PRIMARY KEY,
         MediName VARCHAR(100),
-        Qty INT
+        Qty INT,
+        Expiry DATE
     );
     """
     create_meditag_table = '''

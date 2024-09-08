@@ -3,7 +3,7 @@ from initiate import retrieve_connection, execute_query, insert_random_data
 from flask_swagger_ui import get_swaggerui_blueprint
 import logging
 from flask_cors import CORS
-
+from os import getenv
 
 app = Flask(__name__)
 CORS(app)
@@ -47,6 +47,10 @@ def parse_filters(filters):
     
     return conditions, values
 
+
+@app.route('/details', methods=['GET'])
+def get_details():
+    return jsonify({"hospital_name":getenv('HOSPITAL_NAME','Vasant Kunj Hospital')})
 
 @app.route('/', methods=['GET'])
 def home():
