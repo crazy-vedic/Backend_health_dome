@@ -6,7 +6,7 @@ import time
 
 # Define the list of servers
 last_call_time = time.ticks_ms()
-servers = ["http://vedicvarma.com:5000", "http://192.168.205.1:5000","http://192.168.205.1:5001"]
+servers = ["http://vedicvarma.com:5000", "http://192.168.205.1:5000","http://192.168.205.157:5000"]
 ssid = "Hotspot"
 password = "password"
 
@@ -66,6 +66,9 @@ def turn_off_all_leds():
 def set_led_color(server_index, bed_id, status):
     # Set LEDs based on the bed status
     #print(server_index,bed_id,status)
+    if bed_id not in bed_leds[server_index]:
+        #print(f"Error: Bed ID {bed_id} does not exist for Server {server_index}. Skipping this bed.")
+        return
     if status == "Occupied":
         bed_leds[server_index][bed_id]["red"].value(1)
         bed_leds[server_index][bed_id]["yellow"].value(0)
@@ -87,7 +90,7 @@ def set_led_color(server_index, bed_id, status):
 def check_beds():
     for server_index, server in enumerate(servers):
         try:
-            print(f"Sending Request to {server}/beds?filters=bedID>0,bedID<4")
+            print(f"Sending Request to {server}",end='')
             response = urequests.get(f"{server}/beds?filters=bedID>0,bedID<4", timeout=15)
             
             if response.status_code == 200:
@@ -98,25 +101,26 @@ def check_beds():
                         status = bed[3]
                         set_led_color(server_index, bed_id, status)
                 except ValueError as ve:
-                    print(f"JSON parsing error from server {server}: {ve}")
+                    print(f"❌\nJSON parsing error from server {server}: {ve}")
             else:
-                print(f"Error {response.status_code} from server: {server}")
+                print(f"❌\nError {response.status_code} from server: {server}")
 
         except OSError as e:
-            print(f"Network error connecting to server {server}: {e}")
-        except Exception as e:
-            print(f"Failed to connect to server {server}: {e}")
+            print(f"❌\nNetwork error connecting to server {server}: {e}")
+        #except Exception as e:
+        #    print(f"Failed to connect to server {server}: {e}")
         finally:
             try:
                 response.close()
+                print('✅')
             except:
                 print("Failed to close the response properly.")
-        time.sleep(1)
+        #time.sleep(0.1)
         
         
 def test_leds():
     # Define the list of all GPIO pins used for LEDs
-    led_pins = list(range(0, 23)) + list(range(26, 29))  # GPIO pins 0-22 and 26-28
+    led_pins = list(range(0, 23)) +[26]	  # GPIO pins 0-22 and 26-28
     
     # Create a list of Pin objects for each LED
     led_objects = [machine.Pin(pin, machine.Pin.OUT) for pin in led_pins]
@@ -128,11 +132,11 @@ def test_leds():
         
         # Turn on the LED
         led.value(1)
-        time.sleep(0.1)  # Wait for 500 ms
+        time.sleep(0.05)  # Wait for 500 ms
         
         # Turn off the LED
         led.value(0)
-        time.sleep(0.1)  # Wait for another 500 ms
+        time.sleep(0.5)  # Wait for another 500 ms
 
 
 test_leds()
@@ -151,4 +155,5 @@ while True:
         continue
     pico_led.toggle()
     check_beds()
-    time.sleep(1)  # Check every 5 seconds
+    time.sleep(0.1)
+    #time.sleep(1)  # Check every 5 seconds
