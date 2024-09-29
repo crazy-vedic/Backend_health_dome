@@ -4,10 +4,10 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: hospital_db
-    volumes:
-      - mysql_data:/var/lib/mysql
     ports:
       - "127.0.0.1:3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping","-u","root","-ppassword"]
       interval: 10s
@@ -15,10 +15,10 @@ services:
       start_period: 20s
       timeout: 5s
 
-  flask-app:
+  flask-app-1:
     build: ./app
     ports:
-      - "5000:5000"
+      - "6000:6000"
     volumes:
       - ./app:/app
     depends_on:
@@ -30,6 +30,7 @@ services:
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=hospital_db
       - HOSPITAL_NAME=Vasant Kunj Hospital
+      - PORT=6000
     develop:
       watch:
         - action: sync

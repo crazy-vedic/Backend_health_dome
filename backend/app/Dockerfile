@@ -8,13 +8,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the entire app to the working directory
-COPY . /app
-
-# Copy the initiate.py script to the working directory
-COPY initiate.py /app/initiate.py
+COPY . /app/
 
 # Make port 5000 available to the world outside this container
 EXPOSE 5000
+EXPOSE 6000
 
 # Run initiate.py script to setup database
-CMD ["bash", "-c", "python /app/initiate.py && python /app/backend.py"]
+CMD ["bash", "-c", "python ./initiate.py && python ./backend.py"]
